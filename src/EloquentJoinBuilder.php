@@ -48,7 +48,6 @@ class EloquentJoinBuilder extends Builder
     //store clauses on relation for join
     public $relationClauses = [];
 
-    //query methods
     public function where($column, $operator = null, $value = null, $boolean = 'and')
     {
         if ($column instanceof \Closure) {
@@ -80,38 +79,6 @@ class EloquentJoinBuilder extends Builder
         $column = $query->performJoin($column);
 
         return $this->orWhere($column, $operator, $value);
-    }
-
-    public function whereInJoin($column, $values, $boolean = 'and', $not = false)
-    {
-        $query = $this->baseBuilder ? $this->baseBuilder : $this;
-        $column = $query->performJoin($column);
-
-        return $this->whereIn($column, $values, $boolean, $not);
-    }
-
-    public function whereNotInJoin($column, $values, $boolean = 'and')
-    {
-        $query = $this->baseBuilder ? $this->baseBuilder : $this;
-        $column = $query->performJoin($column);
-
-        return $this->whereNotIn($column, $values, $boolean);
-    }
-
-    public function orWhereInJoin($column, $values)
-    {
-        $query = $this->baseBuilder ? $this->baseBuilder : $this;
-        $column = $query->performJoin($column);
-
-        return $this->orWhereIn($column, $values);
-    }
-
-    public function orWhereNotInJoin($column, $values)
-    {
-        $query = $this->baseBuilder ? $this->baseBuilder : $this;
-        $column = $query->performJoin($column);
-
-        return $this->orWhereNotIn($column, $values);
     }
 
     public function orderByJoin($column, $direction = 'asc', $aggregateMethod = null)
@@ -148,7 +115,6 @@ class EloquentJoinBuilder extends Builder
         return $this;
     }
 
-    //helpers methods
     private function performJoin($relations, $leftJoin = null)
     {
         //detect join method
@@ -166,7 +132,7 @@ class EloquentJoinBuilder extends Builder
         $currentTableAlias = $baseTable;
 
         $relationsAccumulated = [];
-        foreach ($relations as $relation) {
+        foreach ($relations ?? [] as $relation) {
             if ($relation == $column) {
                 //last item in $relations argument is sort|where column
                 break;
@@ -188,11 +154,11 @@ class EloquentJoinBuilder extends Builder
             }
 
             if (!in_array($relationAccumulatedString, $this->joinedTables)) {
-                $joinQuery = $relatedTable.($this->useTableAlias ? ' as '.$relatedTableAlias : '');
+                $joinQuery = $relatedTableAlias.($this->useTableAlias ? ' as '.$relatedTableAlias : '');
                 if ($relatedRelation instanceof BelongsToJoin) {
-                    $relatedKey = ((float) \App::version() < 5.8) ? $relatedRelation->getQualifiedForeignKey() : $relatedRelation->getQualifiedForeignKeyName();
+                    $relatedKey = $relatedRelation->getQualifiedForeignKey();
                     $relatedKey = last(explode('.', $relatedKey));
-                    $ownerKey = ((float) \App::version() < 5.8) ? $relatedRelation->getOwnerKey() : $relatedRelation->getOwnerKeyName();
+                    $ownerKey = $relatedRelation->getOwnerKey();
 
                     $this->$joinMethod($joinQuery, function ($join) use ($relatedRelation, $relatedTableAlias, $relatedKey, $currentTableAlias, $ownerKey) {
                         $join->on($relatedTableAlias.'.'.$ownerKey, '=', $currentTableAlias.'.'.$relatedKey);
@@ -237,7 +203,7 @@ class EloquentJoinBuilder extends Builder
 
         //apply clauses on relation
         if (isset($relationBuilder->relationClauses)) {
-            foreach ($relationBuilder->relationClauses as $clause) {
+            foreach ($relationBuilder->relationClauses ?? [] as $clause) {
                 foreach ($clause as $method => $params) {
                     $this->applyClauseOnRelation($join, $method, $params, $relatedTableAlias);
                 }
